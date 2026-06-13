@@ -1,0 +1,64 @@
+# Wallpaper Search
+
+A tiny macOS app that turns a keyword into a fresh, high resolution desktop wallpaper. Double click it, type a theme, press Enter, and your wallpaper changes.
+
+## Why
+
+I run a lot of Mission Control spaces and I kept getting lost in them. Every space looked the same, so glancing at Mission Control was no help at all. This fixes that by giving each space its own themed wallpaper, fast.
+
+The workflow is simple. Switch to the space you want, launch Wallpaper Search, and type a theme for that space (say "the matrix" for one, "kyoto autumn" for another, "synthwave" for a third). macOS remembers the wallpaper per space, so now when you open Mission Control every space is instantly recognizable by its image. No more squinting at identical desktops trying to remember which one had your email and which one had your code.
+
+If you do not like the image it picked, just run it again with the same keyword. It remembers what it already used and gives you a different one each time.
+
+## What it does
+
+1. You type a keyword.
+2. It searches Wallhaven, a real wallpaper site, filtered to at least 1920 by 1080 and safe for work. Results are relevant and high resolution, often 4K or higher.
+3. It downloads one image, normalizes it to a clean JPEG, and sets it as the desktop picture for the current space on every display.
+4. It remembers what it used per keyword, so re-running gives you a different image. There are roughly 70 candidates per theme before it recycles.
+5. It keeps exactly one image on disk plus a small state file, so the cache never grows.
+
+If Wallhaven has nothing for an unusual keyword, it falls back to Bing image search with a large size filter.
+
+## Install
+
+You need macOS 12 or later and the Xcode command line tools (for the Swift compiler). The engine runs on the system Python at /usr/bin/python3, no extra packages required.
+
+```
+git clone https://github.com/thejobot/wallpaper-search.git
+cd wallpaper-search
+./build.sh --install
+```
+
+That compiles the app, generates the icon, and copies Wallpaper Search.app into /Applications. Launch it from Spotlight or Launchpad.
+
+To build without installing, run `./build.sh` and find the app under `build/`.
+
+## Usage
+
+- Launch the app. A small search box opens on whichever screen your mouse is on, pre filled with your last keyword.
+- Type a theme and press Enter. The box closes and the wallpaper updates a moment later, with a notification when it is done.
+- Press Escape to cancel.
+- Run it again to cycle to a different image of the same theme.
+
+The first time it sets a wallpaper, macOS may ask to let it control Finder and System Events, and to allow notifications. Approve those once and it is smooth after that.
+
+## How the wallpaper is set
+
+It uses the same mechanism as the Finder right click "Set Desktop Picture" command, plus a System Events pass to cover multiple displays. Setting the wallpaper while you are inside a given Mission Control space applies it to that space only, which is what makes the per space theming work.
+
+## Files
+
+- `src/main.swift` The search box, a small AppKit app that launches the engine.
+- `src/wallpaper.py` The engine: search, download, validate, set, remember.
+- `src/iconmaker.swift` Renders the app icon.
+- `build.sh` Compiles and assembles everything into the app bundle.
+
+## Notes
+
+- State lives in `~/Library/Caches/WallpaperSearch/`. Delete that folder to reset history.
+- The app is ad hoc signed. It is built locally so it launches without a Gatekeeper prompt.
+
+## License
+
+MIT. See LICENSE.
