@@ -2,13 +2,24 @@
 
 A tiny macOS app that turns a keyword into a fresh, high resolution desktop wallpaper. Double click it, type a theme, press Enter, and your wallpaper changes.
 
+![Mission Control showing a different wallpaper for each space](docs/mission-control.png)
+
+Every space gets its own image, so Mission Control turns into a wall of recognizable rooms instead of identical desktops.
+
 ## Why
 
 I run a lot of Mission Control spaces and I kept getting lost in them. Every space looked the same, so glancing at Mission Control was no help at all. This fixes that by giving each space its own themed wallpaper, fast.
 
 The workflow is simple. Switch to the space you want, launch Wallpaper Search, and type a theme for that space (say "the matrix" for one, "kyoto autumn" for another, "synthwave" for a third). macOS remembers the wallpaper per space, so now when you open Mission Control every space is instantly recognizable by its image. No more squinting at identical desktops trying to remember which one had your email and which one had your code.
 
-If you do not like the image it picked, just run it again with the same keyword. It remembers what it already used and gives you a different one each time.
+## Redo it fast
+
+Speed is the whole point. The box opens already filled in with your last keyword and the text is selected, so re-theming is almost no typing.
+
+- Do not like the image it picked? Launch it again and press Enter. Same keyword, different image, every time. It remembers what it already used so you never get the same one twice until you run out.
+- Want a brand new theme for a space? Launch it, type the word, press Enter. One word and one key.
+
+So fixing a space you do not like, or theming a new one, takes about a second. Switch to the space, launch, Enter, done.
 
 ## What it does
 
