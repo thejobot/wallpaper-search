@@ -14,10 +14,11 @@ The workflow is simple. Switch to the space you want, launch Wallpaper Search, a
 
 ## Redo it fast
 
-Speed is the whole point. The box opens already filled in with your last keyword and the text is selected, so re-theming is almost no typing.
+Speed is the whole point. The box opens empty with a greyed "example wallpaper" hint sitting in the field, so it is obvious where to type, and re-theming is almost no work.
 
-- Do not like the image it picked? Launch it again and press Enter. Same keyword, different image, every time. It remembers what it already used so you never get the same one twice until you run out.
+- Do not like the image it picked? Launch it again, type the same keyword, press Enter. Different image, every time. It remembers what it already used so you never get the same one twice until you run out.
 - Want a brand new theme for a space? Launch it, type the word, press Enter. One word and one key.
+- A checkbox, on by default, appends the word "wallpaper" to the search so general results come back desktop shaped. Uncheck it when you want the keyword searched literally.
 
 So fixing a space you do not like, or theming a new one, takes about a second. Switch to the space, launch, Enter, done.
 
@@ -29,7 +30,7 @@ So fixing a space you do not like, or theming a new one, takes about a second. S
 4. It remembers what it used per keyword, so re-running gives you a different image. There are roughly 70 candidates per theme before it recycles.
 5. It keeps exactly one image on disk plus a small state file, so the cache never grows.
 
-If Wallhaven has nothing for an unusual keyword, it falls back to Bing image search with a large size filter.
+If Wallhaven has nothing for an unusual keyword, it falls back to Bing image search with a large size filter and strict SafeSearch. To keep bad picks out, both sources are filtered to safe content, and every candidate must be landscape and wallpaper shaped (roughly 5:4 up to ultrawide) before it can be chosen, so portraits, squares, and panorama banners are skipped.
 
 ## Install
 
@@ -47,8 +48,9 @@ To build without installing, run `./build.sh` and find the app under `build/`.
 
 ## Usage
 
-- Launch the app. A small search box opens on whichever screen your mouse is on, pre filled with your last keyword.
+- Launch the app. A small search box opens on whichever screen your mouse is on, empty with a greyed "example wallpaper" hint so you know where to type.
 - Type a theme and press Enter. The box closes and the wallpaper updates a moment later, with a notification when it is done.
+- Leave the "Add the word wallpaper to the search" box checked for desktop shaped results, or uncheck it to search your keyword literally.
 - Press Escape to cancel.
 - Run it again to cycle to a different image of the same theme.
 

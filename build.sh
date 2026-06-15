@@ -36,9 +36,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <dict>
   <key>CFBundleName</key><string>Wallpaper Search</string>
   <key>CFBundleDisplayName</key><string>Wallpaper Search</string>
-  <key>CFBundleIdentifier</key><string>com.wallpaper.search</string>
-  <key>CFBundleVersion</key><string>1.0</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleIdentifier</key><string>joe.wallpaper.search</string>
+  <key>CFBundleVersion</key><string>3.1</string>
+  <key>CFBundleShortVersionString</key><string>3.1</string>
   <key>CFBundleExecutable</key><string>applet</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>

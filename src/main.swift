@@ -2,24 +2,17 @@ import AppKit
 
 let CACHE = (NSHomeDirectory() as NSString).appendingPathComponent("Library/Caches/WallpaperSearch")
 
-func lastKeyword() -> String {
-    let p = (CACHE as NSString).appendingPathComponent("state.json")
-    guard let d = try? Data(contentsOf: URL(fileURLWithPath: p)),
-          let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-          let k = j["last_keyword"] as? String else { return "" }
-    return k
-}
-
 final class PromptDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     var window: NSPanel!
     var field: NSTextField!
+    var wallToggle: NSButton!
 
     func applicationDidFinishLaunching(_ n: Notification) {
         // Open the box on whichever screen the mouse is on.
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main!
         let f = screen.frame
-        let w: CGFloat = 480, h: CGFloat = 104
+        let w: CGFloat = 480, h: CGFloat = 140
         let rect = NSRect(x: f.midX - w/2, y: f.midY - h/2, width: w, height: h)
 
         window = NSPanel(contentRect: rect,
@@ -31,26 +24,30 @@ final class PromptDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate
         window.hidesOnDeactivate = false
 
         let label = NSTextField(labelWithString: "Type a theme. It finds a big image and sets this space's wallpaper:")
-        label.frame = NSRect(x: 18, y: 62, width: 444, height: 18)
+        label.frame = NSRect(x: 18, y: 100, width: 444, height: 18)
         label.font = NSFont.systemFont(ofSize: 12)
         label.textColor = .secondaryLabelColor
 
-        field = NSTextField(frame: NSRect(x: 18, y: 20, width: 444, height: 30))
-        field.placeholderString = "e.g. the matrix"
+        field = NSTextField(frame: NSRect(x: 18, y: 58, width: 444, height: 30))
+        // Greyed example so the eye lands here and reads "this is where my wallpaper theme goes".
+        // It is a placeholder, not real text -- the field starts empty and hitting return on it does nothing.
+        field.placeholderString = "example wallpaper"
         field.font = NSFont.systemFont(ofSize: 16)
         field.delegate = self
         field.target = self
         field.action = #selector(go)
-        let prev = lastKeyword()
-        if !prev.isEmpty {
-            field.stringValue = prev
-            field.currentEditor()?.selectAll(nil)
-        }
+
+        // On by default: append the word "wallpaper" to the search for desktop-shaped results.
+        wallToggle = NSButton(checkboxWithTitle: "Add the word \u{201C}wallpaper\u{201D} to the search",
+                              target: nil, action: nil)
+        wallToggle.frame = NSRect(x: 16, y: 18, width: 444, height: 22)
+        wallToggle.state = .on
+        wallToggle.font = NSFont.systemFont(ofSize: 12)
 
         window.contentView?.addSubview(label)
         window.contentView?.addSubview(field)
+        window.contentView?.addSubview(wallToggle)
         window.makeFirstResponder(field)
-        field.selectText(nil)
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -67,12 +64,14 @@ final class PromptDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate
         let script = (Bundle.main.resourcePath! as NSString).appendingPathComponent("wallpaper.py")
 
         // Run the engine fully detached so this box can close immediately.
+        // $WP_FLAGS is unquoted so an empty value adds no argument.
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", "nohup /usr/bin/python3 \"$WP_SCRIPT\" \"$WP_KW\" >/dev/null 2>&1 &"]
+        p.arguments = ["-c", "nohup /usr/bin/python3 \"$WP_SCRIPT\" \"$WP_KW\" $WP_FLAGS >/dev/null 2>&1 &"]
         var env = ProcessInfo.processInfo.environment
         env["WP_SCRIPT"] = script
         env["WP_KW"] = raw
+        env["WP_FLAGS"] = (wallToggle.state == .on) ? "" : "--no-wallpaper-word"
         p.environment = env
         try? p.run()
         p.waitUntilExit()

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Wallpaper Search engine: keyword -> large, relevant image -> set as desktop picture.
 # Primary source: Wallhaven (real wallpapers, JSON API, at least 1920x1080, SFW).
-# Fallback: Bing image search (large filter) when Wallhaven has nothing.
+# Fallback: Bing image search (large filter, strict SafeSearch) when Wallhaven has nothing.
 import sys, os, re, json, ssl, subprocess, urllib.request, urllib.parse, html, time
 
 CACHE = os.path.expanduser("~/Library/Caches/WallpaperSearch")
@@ -9,6 +9,8 @@ STATE = os.path.join(CACHE, "state.json")
 MAX_BYTES = 30 * 1024 * 1024      # never download anything monstrous
 MIN_WIDTH = 1280                  # reject anything not wallpaper-grade
 MAX_TRIES = 8                     # bound download attempts
+MIN_ASPECT = 1.2                  # reject portrait / square junk (must be landscape)
+MAX_ASPECT = 3.6                  # reject panorama banners that look wrong on a desktop
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15")
 CTX = ssl.create_default_context()
@@ -29,11 +31,15 @@ def notify(msg, title="Wallpaper Search"):
             f'display notification "{msg}" with title "{title}"'], timeout=10)
     except Exception: pass
 
-def get(url, timeout=20):
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+def get(url, timeout=20, headers=None):
+    h = {"User-Agent": UA}
+    if headers: h.update(headers)
+    req = urllib.request.Request(url, headers=h)
     return urllib.request.urlopen(req, timeout=timeout, context=CTX)
 
 def wallhaven_candidates(keyword):
+    # Wallhaven is an all-wallpaper site, so the keyword goes in raw -- adding the
+    # word "wallpaper" here only shrinks the matches.
     urls = []
     for page in (1, 2, 3):
         q = urllib.parse.urlencode({
@@ -54,15 +60,20 @@ def wallhaven_candidates(keyword):
         if page >= int(j.get("meta", {}).get("last_page", page)): break
     return urls
 
-def bing_candidates(keyword):
+def bing_candidates(keyword, add_word=True):
+    # Bing is the general web, so the word "wallpaper" steers it toward desktop-shaped
+    # art (toggle in the UI). Strict SafeSearch is enforced two ways: the adlt=strict
+    # query param and the SRCHHPGUSR cookie Bing actually reads -- both, so a stray
+    # result can't slip through.
     urls = []
-    query = keyword + " wallpaper"
+    query = (keyword + " wallpaper") if add_word and "wallpaper" not in keyword.lower() else keyword
+    safe = {"Cookie": "SRCHHPGUSR=ADLT=STRICT"}
     for first in (1, 36, 71):
-        q = urllib.parse.urlencode({"q": query})
+        q = urllib.parse.urlencode({"q": query, "adlt": "strict"})
         u = (f"https://www.bing.com/images/search?{q}"
              f"&qft=+filterui:imagesize-large&first={first}")
         try:
-            text = html.unescape(get(u).read().decode("utf-8", "ignore"))
+            text = html.unescape(get(u, headers=safe).read().decode("utf-8", "ignore"))
         except Exception:
             continue
         for m in re.findall(r'"murl":"(.*?)"', text):
@@ -71,10 +82,10 @@ def bing_candidates(keyword):
                 urls.append(cand)
     return urls
 
-def candidates(keyword):
+def candidates(keyword, add_word=True):
     wh = wallhaven_candidates(keyword)
     if wh: return wh, "wallhaven"
-    return bing_candidates(keyword), "bing"
+    return bing_candidates(keyword, add_word), "bing"
 
 def download(url, dest):
     with get(url, timeout=25) as r:
@@ -111,15 +122,17 @@ def set_wallpaper(path):
 
 def main():
     if len(sys.argv) < 2:
-        print("usage: wallpaper.py <keyword> [--dry]"); return 1
+        print("usage: wallpaper.py <keyword> [--dry] [--no-wallpaper-word]"); return 1
     dry = "--dry" in sys.argv
+    # The word "wallpaper" is appended to the search by default; the UI toggle can drop it.
+    add_word = "--no-wallpaper-word" not in sys.argv
     keyword = " ".join(a for a in sys.argv[1:] if not a.startswith("--")).strip()
     if not keyword: return 1
 
     state = load_state()
     used = set(state["used"].get(keyword, []))
 
-    cands, source = candidates(keyword)
+    cands, source = candidates(keyword, add_word)
     if not cands:
         notify(f'No images found for "{keyword}".'); return 2
 
@@ -140,12 +153,13 @@ def main():
             tries += 1
             w, h = dimensions(tmp)
             if w < MIN_WIDTH or w*h == 0: continue
-            landscape = w >= h
+            aspect = w / h
+            if aspect < MIN_ASPECT or aspect > MAX_ASPECT:
+                continue                  # portrait, square, or banner -> not a wallpaper
             if best is None or w > best[0]:
                 os.replace(tmp, keep); best = (w, url)
                 picked = url
-            if landscape:                 # first relevant landscape, take it
-                break
+                break                     # first wallpaper-shaped, large hit -> take it
         except Exception:
             continue
 
