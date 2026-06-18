@@ -10,6 +10,9 @@ mkdir -p "$BUILD" "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 echo "Compiling prompt..."
 swiftc -O -o "$BUILD/applet" src/main.swift
+# This toolchain stamps a bogus LC_BUILD_VERSION (minos 28.0, higher than the SDK)
+# that makes macOS refuse the app with "requires macOS 28.0 or later". Rewrite it sane.
+vtool -set-build-version macos 12.0 26.5 -replace -output "$BUILD/applet" "$BUILD/applet" >/dev/null
 
 echo "Rendering icon..."
 swiftc -O -o "$BUILD/iconmaker" src/iconmaker.swift

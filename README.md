@@ -53,6 +53,7 @@ To build without installing, run `./build.sh` and find the app under `build/`.
 - Leave the "Add the word wallpaper to the search" box checked for desktop shaped results, or uncheck it to search your keyword literally.
 - Press Escape to cancel.
 - Run it again to cycle to a different image of the same theme.
+- Type "reset all" instead of a theme to set every display to a plain light blue. This themes the displays in the current space, the same way a search does, so run it once per space if you use more than one.
 
 The first time it sets a wallpaper, macOS may ask to let it control Finder and System Events, and to allow notifications. Approve those once and it is smooth after that.
 

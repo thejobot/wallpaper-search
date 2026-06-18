@@ -2,7 +2,10 @@
 # Wallpaper Search engine: keyword -> large, relevant image -> set as desktop picture.
 # Primary source: Wallhaven (real wallpapers, JSON API, at least 1920x1080, SFW).
 # Fallback: Bing image search (large filter, strict SafeSearch) when Wallhaven has nothing.
-import sys, os, re, json, ssl, subprocess, urllib.request, urllib.parse, html, time
+import sys, os, re, json, ssl, subprocess, urllib.request, urllib.parse, html, time, zlib, struct
+
+LIGHT_BLUE = (173, 216, 230)          # web "lightblue" #ADD8E6
+RESET_WORDS = {"reset all", "reset all monitors", "reset all monitor", "reset"}
 
 CACHE = os.path.expanduser("~/Library/Caches/WallpaperSearch")
 STATE = os.path.join(CACHE, "state.json")
@@ -112,6 +115,34 @@ def dimensions(path):
     except Exception:
         return 0, 0
 
+def make_solid_png(rgb, w, h, dest):
+    # Pure-stdlib solid-color PNG (no Pillow). 8-bit truecolor; a flat field
+    # compresses to a few hundred bytes regardless of dimensions.
+    px = bytes(rgb)
+    row = b"\x00" + px * w                 # filter byte 0 + w RGB pixels
+    comp = zlib.compress(row * h, 9)
+    def chunk(typ, data):
+        body = typ + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xffffffff)
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)   # bit depth 8, color type 2 (RGB)
+    png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr)
+           + chunk(b"IDAT", comp) + chunk(b"IEND", b""))
+    with open(dest, "wb") as f:
+        f.write(png)
+
+def reset_all():
+    # Special command: type "reset all" -> paint every display a flat light blue.
+    os.makedirs(CACHE, exist_ok=True)
+    dest = os.path.join(CACHE, "reset_lightblue.png")
+    make_solid_png(LIGHT_BLUE, 2560, 1440, dest)
+    set_wallpaper(dest)
+    state = load_state()
+    state["last_keyword"] = "reset all"
+    state["current_file"] = dest
+    save_state(state)
+    notify("All monitors reset to light blue.")
+    return 0
+
 def set_wallpaper(path):
     # Finder mechanic (reliable on the main display) plus System Events for every display.
     # Running this while inside a given Mission Control space themes that space.
@@ -128,6 +159,10 @@ def main():
     add_word = "--no-wallpaper-word" not in sys.argv
     keyword = " ".join(a for a in sys.argv[1:] if not a.startswith("--")).strip()
     if not keyword: return 1
+
+    # "reset all" is a command, not a search: blank every monitor to light blue.
+    if keyword.lower() in RESET_WORDS:
+        return reset_all()
 
     state = load_state()
     used = set(state["used"].get(keyword, []))
